@@ -9,16 +9,6 @@ provider:
 
 plugins:
   - serverless-offline
-  - serverless-dynamodb-local
-
-custom:
-  dynamodb:
-    stages:
-      - dev
-    start:
-      port: 8000
-      inMemory: true
-      migrate: true
 
 functions:
 
@@ -46,6 +36,46 @@ functions:
           method: get
           cors: true
 
+  updateProfile:
+    handler: lambdas/auth/updateProfile.handler
+    events:
+      - http:
+          path: auth/profile
+          method: put
+          cors: true
+
+  createWorkout:
+    handler: lambdas/workouts/createWorkout.handler
+    events:
+      - http:
+          path: workouts/create
+          method: post
+          cors: true
+
+  getWorkouts:
+    handler: lambdas/workouts/getWorkouts.handler
+    events:
+      - http:
+          path: workouts/list
+          method: get
+          cors: true
+
+  createSupplement:
+    handler: lambdas/supplements/createSupplement.handler
+    events:
+      - http:
+          path: supplements/create
+          method: post
+          cors: true
+
+  getSupplements:
+    handler: lambdas/supplements/getSupplements.handler
+    events:
+      - http:
+          path: supplements/list
+          method: get
+          cors: true
+
 resources:
   Resources:
     AthleteFuelTable:
@@ -54,12 +84,8 @@ resources:
         TableName: AthleteFuel
         BillingMode: PAY_PER_REQUEST
         AttributeDefinitions:
-          - AttributeName: PK
-            AttributeType: S
-          - AttributeName: SK
+          - AttributeName: id
             AttributeType: S
         KeySchema:
-          - AttributeName: PK
+          - AttributeName: id
             KeyType: HASH
-          - AttributeName: SK
-            KeyType: RANGE

@@ -43,6 +43,7 @@ function Register() {
             value={name}
             onChange={(e)=>setName(e.target.value)}
             className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+            required
           />
 
           <input
@@ -51,6 +52,7 @@ function Register() {
             value={email}
             onChange={(e)=>setEmail(e.target.value)}
             className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+            required
           />
 
           <input
@@ -59,6 +61,8 @@ function Register() {
             value={password}
             onChange={(e)=>setPassword(e.target.value)}
             className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+            required
+            minLength={6}
           />
 
           <button

@@ -1,10 +1,11 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, PutCommand } = require("@aws-sdk/lib-dynamodb");
+const { DynamoDBDocumentClient, PutCommand, ScanCommand } = require("@aws-sdk/lib-dynamodb");
 const bcrypt = require("bcryptjs");
 
 const client = new DynamoDBClient({
   region: "us-east-1",
-  endpoint: "http://localhost:8000"
+  endpoint: "http://localhost:8000",
+  credentials: { accessKeyId: "local", secretAccessKey: "local" }
 });
 
 const dynamoDb = DynamoDBDocumentClient.from(client);
@@ -42,13 +43,33 @@ exports.handler = async (event) => {
       };
     }
 
+    // Check for duplicate email
+    const existing = await dynamoDb.send(
+      new ScanCommand({
+        TableName: "AthleteFuel",
+        FilterExpression: "email = :email",
+        ExpressionAttributeValues: {
+          ":email": email.trim()
+        }
+      })
+    );
+
+    if (existing.Items && existing.Items.length > 0) {
+      return {
+        statusCode: 409,
+        body: JSON.stringify({
+          message: "Email already registered"
+        })
+      };
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await dynamoDb.send(
       new PutCommand({
         TableName: "AthleteFuel",
         Item: {
-          id: Date.now().toString(),
+          id: "user_" + Date.now().toString(),
           name: name.trim(),
           email: email.trim(),
           password: hashedPassword

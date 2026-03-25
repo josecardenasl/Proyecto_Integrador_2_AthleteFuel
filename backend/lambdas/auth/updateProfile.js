@@ -1,5 +1,5 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, PutCommand } = require("@aws-sdk/lib-dynamodb");
+const { DynamoDBDocumentClient, ScanCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
 const jwt = require("jsonwebtoken");
 
 const client = new DynamoDBClient({
@@ -27,37 +27,49 @@ exports.handler = async (event) => {
     const decoded = jwt.verify(token, SECRET);
 
     const body = JSON.parse(event.body || "{}");
-    const { name, type, duration, notes } = body;
+    const { goals } = body;
 
-    if (!name || !duration) {
+    if (!goals || goals.trim() === "") {
       return {
         statusCode: 400,
-        body: JSON.stringify({ message: "Name and duration are required" })
+        body: JSON.stringify({ message: "Training goals are required" })
       };
     }
 
-    const workout = {
-      id: "workout_" + Date.now().toString(),
-      userId: decoded.id,
-      name: name.trim(),
-      type: type || "Otro",
-      duration: Number(duration),
-      notes: notes || "",
-      createdAt: new Date().toISOString()
-    };
+    // Find user by id
+    const result = await dynamoDb.send(
+      new ScanCommand({
+        TableName: "AthleteFuel",
+        FilterExpression: "id = :id",
+        ExpressionAttributeValues: {
+          ":id": decoded.id
+        }
+      })
+    );
+
+    if (!result.Items || result.Items.length === 0) {
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ message: "User not found" })
+      };
+    }
 
     await dynamoDb.send(
-      new PutCommand({
+      new UpdateCommand({
         TableName: "AthleteFuel",
-        Item: workout
+        Key: { id: decoded.id },
+        UpdateExpression: "SET goals = :goals",
+        ExpressionAttributeValues: {
+          ":goals": goals.trim()
+        }
       })
     );
 
     return {
-      statusCode: 201,
+      statusCode: 200,
       body: JSON.stringify({
-        message: "Workout created successfully",
-        workout
+        message: "Profile updated successfully",
+        goals: goals.trim()
       })
     };
 
@@ -65,7 +77,7 @@ exports.handler = async (event) => {
     return {
       statusCode: 500,
       body: JSON.stringify({
-        message: "Error creating workout",
+        message: "Error updating profile",
         error: error.message
       })
     };

@@ -5,7 +5,8 @@ const bcrypt = require("bcryptjs");
 
 const client = new DynamoDBClient({
   region: "us-east-1",
-  endpoint: "http://localhost:8000"
+  endpoint: "http://localhost:8000",
+  credentials: { accessKeyId: "local", secretAccessKey: "local" }
 });
 
 const dynamoDb = DynamoDBDocumentClient.from(client);
