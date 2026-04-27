@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import WorkoutForm from "../components/WorkoutForm";
 import SupplementForm from "../components/SupplementForm";
 import ProfileForm from "../components/ProfileForm";
+import Toast from "../components/Toast";
 import {
   getWorkouts,
   createWorkout,
@@ -12,7 +13,6 @@ import {
   updateProfile,
 } from "../services/api";
 
-// Decode JWT payload without a library
 function decodeToken(token) {
   try {
     const payload = token.split(".")[1];
@@ -94,6 +94,7 @@ function Dashboard() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [loadingWorkouts, setLoadingWorkouts] = useState(true);
   const [loadingSupplements, setLoadingSupplements] = useState(true);
+  const [toast, setToast] = useState({ message: "", type: "success" });
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -159,9 +160,9 @@ function Dashboard() {
     try {
       await updateProfile(profileData);
       setUserGoals(profileData.goals);
-      alert("Profile updated successfully!");
+      setToast({ message: "Profile updated successfully!", type: "success" });
     } catch {
-      alert("Error updating profile");
+      setToast({ message: "Error updating profile", type: "error" });
     }
     setShowProfileModal(false);
   }
@@ -171,7 +172,17 @@ function Dashboard() {
       <Navbar userName={userName} />
 
       <main className="max-w-5xl mx-auto px-4 py-8">
-        {/* Header */}
+
+        {toast.message && (
+          <div className="mb-6">
+            <Toast
+              message={toast.message}
+              type={toast.type}
+              onClose={() => setToast({ message: "", type: "success" })}
+            />
+          </div>
+        )}
+
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-500 mt-1">
@@ -179,7 +190,6 @@ function Dashboard() {
           </p>
         </div>
 
-        {/* Profile Section */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-8 flex items-center justify-between">
           <div>
             <p className="text-sm text-gray-500 font-medium">Training Goals</p>
@@ -195,58 +205,31 @@ function Dashboard() {
           </button>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-2 gap-4 mb-8">
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
             <div className="bg-red-100 p-3 rounded-xl">
-              <svg
-                className="w-6 h-6 text-red-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
+              <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {workouts.length}
-              </p>
+              <p className="text-2xl font-bold text-gray-900">{workouts.length}</p>
               <p className="text-sm text-gray-500">Entrenamientos</p>
             </div>
           </div>
-
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
             <div className="bg-blue-100 p-3 rounded-xl">
-              <svg
-                className="w-6 h-6 text-blue-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
-                />
+              <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
               </svg>
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {supplements.length}
-              </p>
+              <p className="text-2xl font-bold text-gray-900">{supplements.length}</p>
               <p className="text-sm text-gray-500">Suplementos</p>
             </div>
           </div>
         </div>
 
-        {/* Workouts Section */}
         <section className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-gray-900">Entrenamientos</h2>
@@ -257,15 +240,12 @@ function Dashboard() {
               <span className="text-lg leading-none">+</span> Agregar
             </button>
           </div>
-
           {loadingWorkouts ? (
             <p className="text-gray-400 text-sm">Cargando...</p>
           ) : workouts.length === 0 ? (
             <div className="bg-white border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center">
               <p className="text-gray-400">No hay entrenamientos aún.</p>
-              <p className="text-gray-400 text-sm mt-1">
-                Agrega tu primer entrenamiento.
-              </p>
+              <p className="text-gray-400 text-sm mt-1">Agrega tu primer entrenamiento.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -276,7 +256,6 @@ function Dashboard() {
           )}
         </section>
 
-        {/* Supplements Section */}
         <section>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-gray-900">Suplementos</h2>
@@ -287,59 +266,35 @@ function Dashboard() {
               <span className="text-lg leading-none">+</span> Agregar
             </button>
           </div>
-
           {loadingSupplements ? (
             <p className="text-gray-400 text-sm">Cargando...</p>
           ) : supplements.length === 0 ? (
             <div className="bg-white border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center">
               <p className="text-gray-400">No hay suplementos aún.</p>
-              <p className="text-gray-400 text-sm mt-1">
-                Agrega tu primer suplemento.
-              </p>
+              <p className="text-gray-400 text-sm mt-1">Agrega tu primer suplemento.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {supplements.map((s) => (
-                <SupplementCard
-                  key={s.id ?? s.SK ?? Math.random()}
-                  supplement={s}
-                />
+                <SupplementCard key={s.id ?? s.SK ?? Math.random()} supplement={s} />
               ))}
             </div>
           )}
         </section>
       </main>
 
-      {/* Modals */}
       {showWorkoutModal && (
-        <Modal
-          title="Nuevo entrenamiento"
-          onClose={() => setShowWorkoutModal(false)}
-        >
-          <WorkoutForm
-            onSubmit={handleAddWorkout}
-            onCancel={() => setShowWorkoutModal(false)}
-          />
+        <Modal title="Nuevo entrenamiento" onClose={() => setShowWorkoutModal(false)}>
+          <WorkoutForm onSubmit={handleAddWorkout} onCancel={() => setShowWorkoutModal(false)} />
         </Modal>
       )}
-
       {showSupplementModal && (
-        <Modal
-          title="Nuevo suplemento"
-          onClose={() => setShowSupplementModal(false)}
-        >
-          <SupplementForm
-            onSubmit={handleAddSupplement}
-            onCancel={() => setShowSupplementModal(false)}
-          />
+        <Modal title="Nuevo suplemento" onClose={() => setShowSupplementModal(false)}>
+          <SupplementForm onSubmit={handleAddSupplement} onCancel={() => setShowSupplementModal(false)} />
         </Modal>
       )}
-
       {showProfileModal && (
-        <Modal
-          title="Edit Profile"
-          onClose={() => setShowProfileModal(false)}
-        >
+        <Modal title="Edit Profile" onClose={() => setShowProfileModal(false)}>
           <ProfileForm
             currentGoals={userGoals}
             onSubmit={handleUpdateProfile}

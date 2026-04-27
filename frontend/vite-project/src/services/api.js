@@ -30,7 +30,24 @@ export async function loginUser(data) {
   return result;
 }
 
-// Profile
+export async function forgotPassword(data) {
+  const response = await fetch(`${API_URL}/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+}
+
+export async function resetPassword(data) {
+  const response = await fetch(`${API_URL}/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+}
+
 export async function updateProfile(data) {
   const response = await fetch(`${API_URL}/auth/profile`, {
     method: "PUT",
@@ -40,7 +57,6 @@ export async function updateProfile(data) {
   return response.json();
 }
 
-// Workouts
 export async function getWorkouts() {
   const response = await fetch(`${API_URL}/workouts/list`, {
     headers: getAuthHeaders(),
@@ -57,7 +73,6 @@ export async function createWorkout(data) {
   return response.json();
 }
 
-// Supplements
 export async function getSupplements() {
   const response = await fetch(`${API_URL}/supplements/list`, {
     headers: getAuthHeaders(),

@@ -44,6 +44,22 @@ functions:
           method: put
           cors: true
 
+  forgotPassword:
+    handler: lambdas/auth/forgotPassword.handler
+    events:
+      - http:
+          path: auth/forgot-password
+          method: post
+          cors: true
+
+  resetPassword:
+    handler: lambdas/auth/resetPassword.handler
+    events:
+      - http:
+          path: auth/reset-password
+          method: post
+          cors: true
+
   createWorkout:
     handler: lambdas/workouts/createWorkout.handler
     events:
