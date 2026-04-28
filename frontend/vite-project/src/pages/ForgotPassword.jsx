@@ -16,17 +16,15 @@ function ForgotPassword() {
     try {
       const data = await forgotPassword({ email });
 
-      if (data.devOtp) {
-        setToast({
-          message: `Code sent! (dev mode: ${data.devOtp})`,
-          type: "success",
-        });
-        setTimeout(() => {
-          navigate("/reset-password", { state: { email } });
-        }, 2000);
-      } else {
-        setToast({ message: data.message, type: "info" });
-      }
+      setToast({
+        message: "Code sent! Check your email.",
+        type: "success",
+      });
+
+      setTimeout(() => {
+        navigate("/reset-password", { state: { email } });
+      }, 2000);
+
     } catch {
       setToast({ message: "Connection error. Try again.", type: "error" });
     } finally {
