@@ -2,12 +2,12 @@ import { useState } from "react";
 
 const WORKOUT_TYPES = ["Cardio", "Fuerza", "HIIT", "Flexibilidad", "Otro"];
 
-function WorkoutForm({ onSubmit, onCancel }) {
+function WorkoutForm({ initial, onSubmit, onCancel }) {
   const [form, setForm] = useState({
-    name: "",
-    type: "Cardio",
-    duration: "",
-    notes: "",
+    name: initial?.name || "",
+    type: initial?.type || "Cardio",
+    duration: initial?.duration || "",
+    notes: initial?.notes || "",
   });
 
   function handleChange(e) {
@@ -41,19 +41,10 @@ function WorkoutForm({ onSubmit, onCancel }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Tipo
-        </label>
-        <select
-          name="type"
-          value={form.type}
-          onChange={handleChange}
-          className={inputClass}
-        >
+        <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+        <select name="type" value={form.type} onChange={handleChange} className={inputClass}>
           {WORKOUT_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
+            <option key={t} value={t}>{t}</option>
           ))}
         </select>
       </div>
@@ -75,9 +66,7 @@ function WorkoutForm({ onSubmit, onCancel }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Notas
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
         <textarea
           name="notes"
           placeholder="Observaciones opcionales..."
@@ -89,17 +78,10 @@ function WorkoutForm({ onSubmit, onCancel }) {
       </div>
 
       <div className="flex gap-3 pt-2">
-        <button
-          type="submit"
-          className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg transition font-semibold"
-        >
-          Guardar
+        <button type="submit" className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg transition font-semibold">
+          {initial ? "Guardar cambios" : "Guardar"}
         </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-lg transition"
-        >
+        <button type="button" onClick={onCancel} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-lg transition">
           Cancelar
         </button>
       </div>

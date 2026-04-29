@@ -4,78 +4,127 @@ import Navbar from "../components/Navbar";
 import WorkoutForm from "../components/WorkoutForm";
 import SupplementForm from "../components/SupplementForm";
 import ProfileForm from "../components/ProfileForm";
+import CalendarView from "../components/CalendarView";
 import {
-  getWorkouts,
-  createWorkout,
-  getSupplements,
-  createSupplement,
+  getWorkouts, createWorkout, updateWorkout, deleteWorkout,
+  getSessions, createSession, updateSession, deleteSession,
+  getSupplements, createSupplement, updateSupplement, deleteSupplement,
+  getScheduledIntakes, scheduleIntake, updateScheduledIntake, deleteScheduledIntake,
   updateProfile,
 } from "../services/api";
 
-// Decode JWT payload without a library
 function decodeToken(token) {
   try {
-    const payload = token.split(".")[1];
-    return JSON.parse(atob(payload));
-  } catch {
-    return null;
+    return JSON.parse(atob(token.split(".")[1]));
+  } catch { return null; }
+}
+
+// ─── Schedule Session Form ────────────────────────────────────────────────────
+function ScheduleSessionForm({ workouts, preselected, userTimezone, onSubmit, onCancel }) {
+  const today = new Date().toISOString().split("T")[0];
+  const [form, setForm] = useState({
+    workoutId: preselected?.id || workouts[0]?.id || "",
+    date: today,
+    time: "08:00",
+    notes: "",
+  });
+  const inputClass = "border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 w-full";
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    const selected = workouts.find(w => w.id === form.workoutId);
+    onSubmit({ ...form, workoutName: selected?.name || "Entrenamiento", timezone: userTimezone || "America/Bogota" });
   }
-}
 
-function WorkoutCard({ workout }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-      <div className="flex items-start justify-between">
-        <div>
-          <h4 className="font-semibold text-gray-900">{workout.name}</h4>
-          <p className="text-sm text-gray-500 mt-1">
-            {workout.type} · {workout.duration} min
-          </p>
-          {workout.notes && (
-            <p className="text-sm text-gray-400 mt-1">{workout.notes}</p>
-          )}
-        </div>
-        <span className="bg-red-100 text-red-600 text-xs font-medium px-2 py-1 rounded-full">
-          {workout.type}
-        </span>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Plan de entrenamiento *</label>
+        <select value={form.workoutId} onChange={e => setForm({ ...form, workoutId: e.target.value })} className={inputClass} required>
+          {workouts.map(w => <option key={w.id} value={w.id}>{w.name} ({w.type})</option>)}
+        </select>
       </div>
-    </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Fecha *</label>
+          <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} min={today} className={inputClass} required />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Hora *</label>
+          <input type="time" value={form.time} onChange={e => setForm({ ...form, time: e.target.value })} className={inputClass} required />
+        </div>
+      </div>
+      {userTimezone && <p className="text-xs text-gray-400">Zona horaria: {userTimezone}</p>}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+        <input type="text" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Opcional..." className={inputClass} />
+      </div>
+      <div className="flex gap-3 pt-2">
+        <button type="submit" className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg font-semibold transition">Programar</button>
+        <button type="button" onClick={onCancel} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-lg transition">Cancelar</button>
+      </div>
+    </form>
   );
 }
 
-function SupplementCard({ supplement }) {
+// ─── Schedule Intake Form ─────────────────────────────────────────────────────
+function ScheduleIntakeForm({ supplements, preselected, userTimezone, onSubmit, onCancel }) {
+  const today = new Date().toISOString().split("T")[0];
+  const [supplementId, setSupplementId] = useState(preselected?.id || supplements[0]?.id || "");
+  const [date, setDate] = useState(today);
+  const [times, setTimes] = useState(["08:00"]);
+  const [notes, setNotes] = useState("");
+  const inputClass = "border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full";
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    const selected = supplements.find(s => s.id === supplementId);
+    onSubmit({ supplementId, supplementName: selected?.name || "Suplemento", date, intakeTimes: times, timezone: userTimezone || "America/Bogota", notes });
+  }
+
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-      <div className="flex items-start justify-between">
-        <div>
-          <h4 className="font-semibold text-gray-900">{supplement.name}</h4>
-          <p className="text-sm text-gray-500 mt-1">
-            {supplement.dose} · {supplement.timing}
-          </p>
-          {supplement.notes && (
-            <p className="text-sm text-gray-400 mt-1">{supplement.notes}</p>
-          )}
-        </div>
-        <span className="bg-blue-100 text-blue-600 text-xs font-medium px-2 py-1 rounded-full">
-          {supplement.timing}
-        </span>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Suplemento *</label>
+        <select value={supplementId} onChange={e => setSupplementId(e.target.value)} className={inputClass} required>
+          {supplements.map(s => <option key={s.id} value={s.id}>{s.name} ({s.dose})</option>)}
+        </select>
       </div>
-    </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Fecha *</label>
+        <input type="date" value={date} onChange={e => setDate(e.target.value)} min={today} className={inputClass} required />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Horarios de ingesta *</label>
+        {times.map((t, idx) => (
+          <div key={idx} className="flex gap-2 mb-2">
+            <input type="time" value={t} onChange={e => { const u = [...times]; u[idx] = e.target.value; setTimes(u); }} className={inputClass} required />
+            {times.length > 1 && <button type="button" onClick={() => setTimes(times.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-600 px-2">✕</button>}
+          </div>
+        ))}
+        <button type="button" onClick={() => setTimes([...times, "12:00"])} className="text-sm text-blue-600 hover:underline">+ Agregar horario</button>
+      </div>
+      {userTimezone && <p className="text-xs text-gray-400">Zona horaria: {userTimezone}</p>}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+        <input type="text" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Opcional..." className={inputClass} />
+      </div>
+      <div className="flex gap-3 pt-2">
+        <button type="submit" className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-semibold transition">Programar</button>
+        <button type="button" onClick={onCancel} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-lg transition">Cancelar</button>
+      </div>
+    </form>
   );
 }
 
+// ─── Modal ────────────────────────────────────────────────────────────────────
 function Modal({ title, children, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
           <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-          >
-            &times;
-          </button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
         <div className="px-6 py-5">{children}</div>
       </div>
@@ -83,88 +132,224 @@ function Modal({ title, children, onClose }) {
   );
 }
 
+// ─── Workout Card ─────────────────────────────────────────────────────────────
+function WorkoutCard({ workout, onEdit, onDelete, onSchedule }) {
+  const typeColors = {
+    Cardio: "bg-orange-100 text-orange-600",
+    Fuerza: "bg-red-100 text-red-600",
+    HIIT: "bg-purple-100 text-purple-600",
+    Flexibilidad: "bg-green-100 text-green-600",
+    Otro: "bg-gray-100 text-gray-600",
+  };
+  const color = typeColors[workout.type] || typeColors.Otro;
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1 min-w-0">
+          <h4 className="font-semibold text-gray-900">{workout.name}</h4>
+          <p className="text-sm text-gray-500 mt-0.5">{workout.duration} min</p>
+          {workout.notes && <p className="text-xs text-gray-400 mt-1">{workout.notes}</p>}
+        </div>
+        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ml-2 shrink-0 ${color}`}>{workout.type}</span>
+      </div>
+      <div className="flex gap-1.5 pt-1 border-t border-gray-50">
+        <button onClick={() => onSchedule(workout)} className="flex-1 text-xs bg-green-50 hover:bg-green-100 text-green-700 py-1.5 rounded-lg transition font-medium">📅 Programar</button>
+        <button onClick={() => onEdit(workout)} className="flex-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 rounded-lg transition">✏️ Editar</button>
+        <button onClick={() => onDelete(workout.id)} className="flex-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 py-1.5 rounded-lg transition">🗑️ Eliminar</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Supplement Card ──────────────────────────────────────────────────────────
+function SupplementCard({ supplement, onEdit, onDelete, onSchedule }) {
+  const timingColors = {
+    "Mañana": "bg-yellow-100 text-yellow-700",
+    "Pre-entrenamiento": "bg-orange-100 text-orange-700",
+    "Post-entrenamiento": "bg-blue-100 text-blue-700",
+    "Noche": "bg-indigo-100 text-indigo-700",
+    "Otro": "bg-gray-100 text-gray-600",
+  };
+  const color = timingColors[supplement.timing] || timingColors.Otro;
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1 min-w-0">
+          <h4 className="font-semibold text-gray-900">{supplement.name}</h4>
+          <p className="text-sm text-gray-500 mt-0.5">{supplement.dose}</p>
+          {supplement.notes && <p className="text-xs text-gray-400 mt-1">{supplement.notes}</p>}
+        </div>
+        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ml-2 shrink-0 ${color}`}>{supplement.timing}</span>
+      </div>
+      <div className="flex gap-1.5 pt-1 border-t border-gray-50">
+        <button onClick={() => onSchedule(supplement)} className="flex-1 text-xs bg-green-50 hover:bg-green-100 text-green-700 py-1.5 rounded-lg transition font-medium">📅 Programar</button>
+        <button onClick={() => onEdit(supplement)} className="flex-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 rounded-lg transition">✏️ Editar</button>
+        <button onClick={() => onDelete(supplement.id)} className="flex-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 py-1.5 rounded-lg transition">🗑️ Eliminar</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
 function Dashboard() {
   const navigate = useNavigate();
   const [userName, setUserName] = useState("");
+  const [userProfile, setUserProfile] = useState({});
   const [workouts, setWorkouts] = useState([]);
   const [supplements, setSupplements] = useState([]);
-  const [userGoals, setUserGoals] = useState("");
+  const [sessions, setSessions] = useState([]);
+  const [intakeSchedules, setIntakeSchedules] = useState([]);
+  const [activeTab, setActiveTab] = useState("workouts");
+
+  // Modals
   const [showWorkoutModal, setShowWorkoutModal] = useState(false);
   const [showSupplementModal, setShowSupplementModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showScheduleSessionModal, setShowScheduleSessionModal] = useState(false);
+  const [showScheduleIntakeModal, setShowScheduleIntakeModal] = useState(false);
+  const [editingWorkout, setEditingWorkout] = useState(null);
+  const [editingSupplement, setEditingSupplement] = useState(null);
+  const [preselectedWorkout, setPreselectedWorkout] = useState(null);
+  const [preselectedSupplement, setPreselectedSupplement] = useState(null);
+
   const [loadingWorkouts, setLoadingWorkouts] = useState(true);
   const [loadingSupplements, setLoadingSupplements] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/");
-      return;
-    }
+    if (!token) { navigate("/"); return; }
     const decoded = decodeToken(token);
+    // name viene en el token desde Sprint 2
     if (decoded?.name) setUserName(decoded.name);
     else if (decoded?.email) setUserName(decoded.email);
 
     fetchWorkouts();
     fetchSupplements();
+    fetchSessions();
+    fetchIntakeSchedules();
   }, []);
 
   async function fetchWorkouts() {
     setLoadingWorkouts(true);
-    try {
-      const data = await getWorkouts();
-      if (Array.isArray(data)) setWorkouts(data);
-    } catch {
-      // backend aún no implementado
-    } finally {
-      setLoadingWorkouts(false);
-    }
+    try { const d = await getWorkouts(); if (Array.isArray(d)) setWorkouts(d); }
+    catch { /* silent */ } finally { setLoadingWorkouts(false); }
   }
-
   async function fetchSupplements() {
     setLoadingSupplements(true);
-    try {
-      const data = await getSupplements();
-      if (Array.isArray(data)) setSupplements(data);
-    } catch {
-      // backend aún no implementado
-    } finally {
-      setLoadingSupplements(false);
-    }
+    try { const d = await getSupplements(); if (Array.isArray(d)) setSupplements(d); }
+    catch { /* silent */ } finally { setLoadingSupplements(false); }
+  }
+  async function fetchSessions() {
+    try { const d = await getSessions(); if (Array.isArray(d)) setSessions(d); }
+    catch { /* silent */ }
+  }
+  async function fetchIntakeSchedules() {
+    try { const d = await getScheduledIntakes(); if (Array.isArray(d)) setIntakeSchedules(d); }
+    catch { /* silent */ }
   }
 
-  async function handleAddWorkout(workoutData) {
+  // ── Workouts ──────────────────────────────────────────────────────────────
+  async function handleAddWorkout(data) {
     try {
-      const result = await createWorkout(workoutData);
-      const saved = result.workout ?? { ...workoutData, id: Date.now() };
-      setWorkouts((prev) => [saved, ...prev]);
-    } catch {
-      setWorkouts((prev) => [{ ...workoutData, id: Date.now() }, ...prev]);
-    }
+      const result = await createWorkout(data);
+      setWorkouts(prev => [result.workout ?? { ...data, id: "workout_" + Date.now() }, ...prev]);
+    } catch { setWorkouts(prev => [{ ...data, id: "workout_" + Date.now() }, ...prev]); }
     setShowWorkoutModal(false);
   }
-
-  async function handleAddSupplement(supplementData) {
+  async function handleEditWorkout(data) {
     try {
-      const result = await createSupplement(supplementData);
-      const saved = result.supplement ?? { ...supplementData, id: Date.now() };
-      setSupplements((prev) => [saved, ...prev]);
-    } catch {
-      setSupplements((prev) => [{ ...supplementData, id: Date.now() }, ...prev]);
-    }
+      await updateWorkout(editingWorkout.id, data);
+      setWorkouts(prev => prev.map(w => w.id === editingWorkout.id ? { ...w, ...data } : w));
+    } catch { /* silent */ }
+    setEditingWorkout(null);
+  }
+  async function handleDeleteWorkout(id) {
+    if (!window.confirm("¿Eliminar este entrenamiento?")) return;
+    try { await deleteWorkout(id); setWorkouts(prev => prev.filter(w => w.id !== id)); }
+    catch { /* silent */ }
+  }
+
+  // ── Sessions ──────────────────────────────────────────────────────────────
+  async function handleScheduleSession(data) {
+    try {
+      const result = await createSession(data);
+      const saved = result.session ?? { ...data, id: "session_" + Date.now() };
+      setSessions(prev => [...prev, saved].sort((a, b) => a.date.localeCompare(b.date)));
+    } catch { /* silent */ }
+    setShowScheduleSessionModal(false);
+    setPreselectedWorkout(null);
+    setActiveTab("calendar");
+  }
+  async function handleEditSession(id, data) {
+    try {
+      await updateSession(id, data);
+      setSessions(prev =>
+        prev.map(s => s.id === id ? { ...s, ...data } : s)
+            .sort((a, b) => a.date.localeCompare(b.date))
+      );
+    } catch { /* silent */ }
+  }
+  async function handleDeleteSession(id) {
+    if (!window.confirm("¿Eliminar esta sesión programada?")) return;
+    try { await deleteSession(id); setSessions(prev => prev.filter(s => s.id !== id)); }
+    catch { /* silent */ }
+  }
+
+  // ── Supplements ───────────────────────────────────────────────────────────
+  async function handleAddSupplement(data) {
+    try {
+      const result = await createSupplement(data);
+      setSupplements(prev => [result.supplement ?? { ...data, id: "supplement_" + Date.now() }, ...prev]);
+    } catch { setSupplements(prev => [{ ...data, id: "supplement_" + Date.now() }, ...prev]); }
     setShowSupplementModal(false);
   }
-
-  async function handleUpdateProfile(profileData) {
+  async function handleEditSupplement(data) {
     try {
-      await updateProfile(profileData);
-      setUserGoals(profileData.goals);
-      alert("Profile updated successfully!");
-    } catch {
-      alert("Error updating profile");
-    }
+      await updateSupplement(editingSupplement.id, data);
+      setSupplements(prev => prev.map(s => s.id === editingSupplement.id ? { ...s, ...data } : s));
+    } catch { /* silent */ }
+    setEditingSupplement(null);
+  }
+  async function handleDeleteSupplement(id) {
+    if (!window.confirm("¿Eliminar este suplemento?")) return;
+    try { await deleteSupplement(id); setSupplements(prev => prev.filter(s => s.id !== id)); }
+    catch { /* silent */ }
+  }
+
+  // ── Intake schedules ──────────────────────────────────────────────────────
+  async function handleScheduleIntake(data) {
+    try {
+      const result = await scheduleIntake(data);
+      const saved = result.schedule ?? { ...data, id: "supp_schedule_" + Date.now() };
+      setIntakeSchedules(prev => [saved, ...prev]);
+    } catch { /* silent */ }
+    setShowScheduleIntakeModal(false);
+    setPreselectedSupplement(null);
+    setActiveTab("calendar");
+  }
+  async function handleEditIntake(id, data) {
+    try {
+      await updateScheduledIntake(id, data);
+      setIntakeSchedules(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
+    } catch { /* silent */ }
+  }
+  async function handleDeleteIntake(id) {
+    if (!window.confirm("¿Eliminar este schedule de suplemento?")) return;
+    try { await deleteScheduledIntake(id); setIntakeSchedules(prev => prev.filter(i => i.id !== id)); }
+    catch { /* silent */ }
+  }
+
+  // ── Profile ───────────────────────────────────────────────────────────────
+  async function handleUpdateProfile(data) {
+    try { await updateProfile(data); setUserProfile(data); }
+    catch { /* silent */ }
     setShowProfileModal(false);
   }
+
+  const userTimezone = userProfile.timezone || "America/Bogota";
+  const totalEvents = sessions.length + intakeSchedules.length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -172,179 +357,204 @@ function Dashboard() {
 
       <main className="max-w-5xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-500 mt-1">
-            Gestiona tus entrenamientos y suplementos
-          </p>
-        </div>
-
-        {/* Profile Section */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-8 flex items-center justify-between">
+        <div className="mb-6 flex items-start justify-between">
           <div>
-            <p className="text-sm text-gray-500 font-medium">Training Goals</p>
-            <p className="text-gray-800 mt-1">
-              {userGoals || <span className="text-gray-400 italic">No goals set yet.</span>}
-            </p>
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-500 mt-1">Gestiona tus entrenamientos y suplementos</p>
           </div>
-          <button
-            onClick={() => setShowProfileModal(true)}
-            className="bg-gray-800 hover:bg-gray-900 text-white text-sm px-4 py-2 rounded-lg transition font-medium"
-          >
-            Edit Profile
+          <button onClick={() => setShowProfileModal(true)} className="bg-gray-800 hover:bg-gray-900 text-white text-sm px-4 py-2 rounded-lg transition font-medium">
+            👤 Mi perfil
           </button>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
-            <div className="bg-red-100 p-3 rounded-xl">
-              <svg
-                className="w-6 h-6 text-red-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-              </svg>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {workouts.length}
-              </p>
-              <p className="text-sm text-gray-500">Entrenamientos</p>
-            </div>
+        {/* Profile summary */}
+        {(userProfile.weight || userProfile.height || userProfile.goals || userProfile.timezone) && (
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-6 flex flex-wrap gap-x-6 gap-y-2 items-center">
+            {userProfile.weight && <span className="text-sm text-gray-600"><span className="font-semibold">Peso:</span> {userProfile.weight} kg</span>}
+            {userProfile.height && <span className="text-sm text-gray-600"><span className="font-semibold">Altura:</span> {userProfile.height} cm</span>}
+            {userProfile.age && <span className="text-sm text-gray-600"><span className="font-semibold">Edad:</span> {userProfile.age} años</span>}
+            {userProfile.gender && <span className="text-sm text-gray-600"><span className="font-semibold">Género:</span> {userProfile.gender}</span>}
+            {userProfile.timezone && <span className="text-sm text-gray-600"><span className="font-semibold">Zona:</span> {userProfile.timezone}</span>}
+            {userProfile.goals && <span className="text-sm text-gray-600 flex-1"><span className="font-semibold">Objetivos:</span> {userProfile.goals}</span>}
           </div>
+        )}
 
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
-            <div className="bg-blue-100 p-3 rounded-xl">
-              <svg
-                className="w-6 h-6 text-blue-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
-                />
-              </svg>
+        {/* Stats */}
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          {[
+            { label: "Entrenamientos", count: workouts.length, color: "bg-red-100 text-red-500", icon: "⚡" },
+            { label: "Suplementos", count: supplements.length, color: "bg-blue-100 text-blue-500", icon: "💊" },
+            { label: "Sesiones", count: sessions.length, color: "bg-green-100 text-green-500", icon: "📅" },
+            { label: "Schedules", count: intakeSchedules.length, color: "bg-purple-100 text-purple-500", icon: "🔔" },
+          ].map(({ label, count, color, icon }) => (
+            <div key={label} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${color}`}>{icon}</div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{count}</p>
+                <p className="text-xs text-gray-500">{label}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {supplements.length}
-              </p>
-              <p className="text-sm text-gray-500">Suplementos</p>
-            </div>
-          </div>
+          ))}
         </div>
 
-        {/* Workouts Section */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Entrenamientos</h2>
+        {/* Tabs */}
+        <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
+          {[
+            { key: "workouts", label: "⚡ Entrenamientos" },
+            { key: "supplements", label: "💊 Suplementos" },
+            { key: "calendar", label: `📅 Calendario${totalEvents > 0 ? ` (${totalEvents})` : ""}` },
+          ].map(({ key, label }) => (
             <button
-              onClick={() => setShowWorkoutModal(true)}
-              className="bg-red-500 hover:bg-red-600 text-white text-sm px-4 py-2 rounded-lg transition font-medium flex items-center gap-1"
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition ${
+                activeTab === key ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700"
+              }`}
             >
-              <span className="text-lg leading-none">+</span> Agregar
+              {label}
             </button>
-          </div>
+          ))}
+        </div>
 
-          {loadingWorkouts ? (
-            <p className="text-gray-400 text-sm">Cargando...</p>
-          ) : workouts.length === 0 ? (
-            <div className="bg-white border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center">
-              <p className="text-gray-400">No hay entrenamientos aún.</p>
-              <p className="text-gray-400 text-sm mt-1">
-                Agrega tu primer entrenamiento.
-              </p>
+        {/* ── Workouts Tab ── */}
+        {activeTab === "workouts" && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Planes de entrenamiento</h2>
+              <button onClick={() => setShowWorkoutModal(true)} className="bg-red-500 hover:bg-red-600 text-white text-sm px-4 py-2 rounded-lg transition font-medium">
+                + Agregar
+              </button>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {workouts.map((w) => (
-                <WorkoutCard key={w.id ?? w.SK ?? Math.random()} workout={w} />
-              ))}
-            </div>
-          )}
-        </section>
+            {loadingWorkouts ? (
+              <p className="text-gray-400 text-sm">Cargando...</p>
+            ) : workouts.length === 0 ? (
+              <div className="bg-white border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center">
+                <p className="text-4xl mb-2">⚡</p>
+                <p className="text-gray-500 font-medium">No hay entrenamientos aún</p>
+                <p className="text-gray-400 text-sm mt-1">Agrega tu primer plan de entrenamiento</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {workouts.map(w => (
+                  <WorkoutCard key={w.id} workout={w}
+                    onEdit={setEditingWorkout}
+                    onDelete={handleDeleteWorkout}
+                    onSchedule={wk => { setPreselectedWorkout(wk); setShowScheduleSessionModal(true); }}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
-        {/* Supplements Section */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Suplementos</h2>
-            <button
-              onClick={() => setShowSupplementModal(true)}
-              className="bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-lg transition font-medium flex items-center gap-1"
-            >
-              <span className="text-lg leading-none">+</span> Agregar
-            </button>
-          </div>
+        {/* ── Supplements Tab ── */}
+        {activeTab === "supplements" && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Suplementos</h2>
+              <button onClick={() => setShowSupplementModal(true)} className="bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-lg transition font-medium">
+                + Agregar
+              </button>
+            </div>
+            {loadingSupplements ? (
+              <p className="text-gray-400 text-sm">Cargando...</p>
+            ) : supplements.length === 0 ? (
+              <div className="bg-white border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center">
+                <p className="text-4xl mb-2">💊</p>
+                <p className="text-gray-500 font-medium">No hay suplementos aún</p>
+                <p className="text-gray-400 text-sm mt-1">Agrega tu primer suplemento</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {supplements.map(s => (
+                  <SupplementCard key={s.id} supplement={s}
+                    onEdit={setEditingSupplement}
+                    onDelete={handleDeleteSupplement}
+                    onSchedule={sp => { setPreselectedSupplement(sp); setShowScheduleIntakeModal(true); }}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
-          {loadingSupplements ? (
-            <p className="text-gray-400 text-sm">Cargando...</p>
-          ) : supplements.length === 0 ? (
-            <div className="bg-white border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center">
-              <p className="text-gray-400">No hay suplementos aún.</p>
-              <p className="text-gray-400 text-sm mt-1">
-                Agrega tu primer suplemento.
-              </p>
+        {/* ── Calendar Tab ── */}
+        {activeTab === "calendar" && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Calendario</h2>
+              <div className="flex gap-2">
+                {workouts.length > 0 && (
+                  <button onClick={() => setShowScheduleSessionModal(true)} className="bg-red-500 hover:bg-red-600 text-white text-sm px-3 py-2 rounded-lg transition font-medium">
+                    + Entrenamiento
+                  </button>
+                )}
+                {supplements.length > 0 && (
+                  <button onClick={() => setShowScheduleIntakeModal(true)} className="bg-blue-500 hover:bg-blue-600 text-white text-sm px-3 py-2 rounded-lg transition font-medium">
+                    + Suplemento
+                  </button>
+                )}
+              </div>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {supplements.map((s) => (
-                <SupplementCard
-                  key={s.id ?? s.SK ?? Math.random()}
-                  supplement={s}
-                />
-              ))}
-            </div>
-          )}
-        </section>
+            <CalendarView
+              sessions={sessions}
+              intakeSchedules={intakeSchedules}
+              timezone={userTimezone}
+              onEditSession={handleEditSession}
+              onDeleteSession={handleDeleteSession}
+              onEditIntake={handleEditIntake}
+              onDeleteIntake={handleDeleteIntake}
+            />
+          </section>
+        )}
       </main>
 
-      {/* Modals */}
+      {/* ── Modals ── */}
       {showWorkoutModal && (
-        <Modal
-          title="Nuevo entrenamiento"
-          onClose={() => setShowWorkoutModal(false)}
-        >
-          <WorkoutForm
-            onSubmit={handleAddWorkout}
-            onCancel={() => setShowWorkoutModal(false)}
+        <Modal title="Nuevo entrenamiento" onClose={() => setShowWorkoutModal(false)}>
+          <WorkoutForm onSubmit={handleAddWorkout} onCancel={() => setShowWorkoutModal(false)} />
+        </Modal>
+      )}
+      {editingWorkout && (
+        <Modal title="Editar entrenamiento" onClose={() => setEditingWorkout(null)}>
+          <WorkoutForm initial={editingWorkout} onSubmit={handleEditWorkout} onCancel={() => setEditingWorkout(null)} />
+        </Modal>
+      )}
+      {showScheduleSessionModal && workouts.length > 0 && (
+        <Modal title="Programar sesión" onClose={() => { setShowScheduleSessionModal(false); setPreselectedWorkout(null); }}>
+          <ScheduleSessionForm
+            workouts={workouts}
+            preselected={preselectedWorkout}
+            userTimezone={userTimezone}
+            onSubmit={handleScheduleSession}
+            onCancel={() => { setShowScheduleSessionModal(false); setPreselectedWorkout(null); }}
           />
         </Modal>
       )}
-
       {showSupplementModal && (
-        <Modal
-          title="Nuevo suplemento"
-          onClose={() => setShowSupplementModal(false)}
-        >
-          <SupplementForm
-            onSubmit={handleAddSupplement}
-            onCancel={() => setShowSupplementModal(false)}
+        <Modal title="Nuevo suplemento" onClose={() => setShowSupplementModal(false)}>
+          <SupplementForm onSubmit={handleAddSupplement} onCancel={() => setShowSupplementModal(false)} />
+        </Modal>
+      )}
+      {editingSupplement && (
+        <Modal title="Editar suplemento" onClose={() => setEditingSupplement(null)}>
+          <SupplementForm initial={editingSupplement} onSubmit={handleEditSupplement} onCancel={() => setEditingSupplement(null)} />
+        </Modal>
+      )}
+      {showScheduleIntakeModal && supplements.length > 0 && (
+        <Modal title="Programar ingesta de suplemento" onClose={() => { setShowScheduleIntakeModal(false); setPreselectedSupplement(null); }}>
+          <ScheduleIntakeForm
+            supplements={supplements}
+            preselected={preselectedSupplement}
+            userTimezone={userTimezone}
+            onSubmit={handleScheduleIntake}
+            onCancel={() => { setShowScheduleIntakeModal(false); setPreselectedSupplement(null); }}
           />
         </Modal>
       )}
-
       {showProfileModal && (
-        <Modal
-          title="Edit Profile"
-          onClose={() => setShowProfileModal(false)}
-        >
-          <ProfileForm
-            currentGoals={userGoals}
-            onSubmit={handleUpdateProfile}
-            onCancel={() => setShowProfileModal(false)}
-          />
+        <Modal title="Mi perfil" onClose={() => setShowProfileModal(false)}>
+          <ProfileForm currentProfile={userProfile} onSubmit={handleUpdateProfile} onCancel={() => setShowProfileModal(false)} />
         </Modal>
       )}
     </div>

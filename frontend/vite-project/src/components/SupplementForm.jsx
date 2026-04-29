@@ -8,12 +8,12 @@ const TIMING_OPTIONS = [
   "Otro",
 ];
 
-function SupplementForm({ onSubmit, onCancel }) {
+function SupplementForm({ initial, onSubmit, onCancel }) {
   const [form, setForm] = useState({
-    name: "",
-    dose: "",
-    timing: "Post-entrenamiento",
-    notes: "",
+    name: initial?.name || "",
+    dose: initial?.dose || "",
+    timing: initial?.timing || "Post-entrenamiento",
+    notes: initial?.notes || "",
   });
 
   function handleChange(e) {
@@ -47,9 +47,7 @@ function SupplementForm({ onSubmit, onCancel }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Dosis *
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Dosis *</label>
         <input
           type="text"
           name="dose"
@@ -62,27 +60,16 @@ function SupplementForm({ onSubmit, onCancel }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Momento del día
-        </label>
-        <select
-          name="timing"
-          value={form.timing}
-          onChange={handleChange}
-          className={inputClass}
-        >
+        <label className="block text-sm font-medium text-gray-700 mb-1">Momento del día</label>
+        <select name="timing" value={form.timing} onChange={handleChange} className={inputClass}>
           {TIMING_OPTIONS.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
+            <option key={t} value={t}>{t}</option>
           ))}
         </select>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Notas
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
         <textarea
           name="notes"
           placeholder="Observaciones opcionales..."
@@ -94,17 +81,10 @@ function SupplementForm({ onSubmit, onCancel }) {
       </div>
 
       <div className="flex gap-3 pt-2">
-        <button
-          type="submit"
-          className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg transition font-semibold"
-        >
-          Guardar
+        <button type="submit" className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg transition font-semibold">
+          {initial ? "Guardar cambios" : "Guardar"}
         </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-lg transition"
-        >
+        <button type="button" onClick={onCancel} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-lg transition">
           Cancelar
         </button>
       </div>

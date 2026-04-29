@@ -60,6 +60,54 @@ functions:
           method: get
           cors: true
 
+  updateWorkout:
+    handler: lambdas/workouts/updateWorkout.handler
+    events:
+      - http:
+          path: workouts/update/{id}
+          method: put
+          cors: true
+
+  deleteWorkout:
+    handler: lambdas/workouts/deleteWorkout.handler
+    events:
+      - http:
+          path: workouts/delete/{id}
+          method: delete
+          cors: true
+
+  createSession:
+    handler: lambdas/workouts/createSession.handler
+    events:
+      - http:
+          path: workouts/sessions
+          method: post
+          cors: true
+
+  getSessions:
+    handler: lambdas/workouts/getSessions.handler
+    events:
+      - http:
+          path: workouts/sessions
+          method: get
+          cors: true
+
+  deleteSession:
+    handler: lambdas/workouts/deleteSession.handler
+    events:
+      - http:
+          path: workouts/sessions/{id}
+          method: delete
+          cors: true
+
+  updateSession:
+    handler: lambdas/workouts/updateSession.handler
+    events:
+      - http:
+          path: workouts/sessions/{id}
+          method: put
+          cors: true
+
   createSupplement:
     handler: lambdas/supplements/createSupplement.handler
     events:
@@ -74,6 +122,54 @@ functions:
       - http:
           path: supplements/list
           method: get
+          cors: true
+
+  updateSupplement:
+    handler: lambdas/supplements/updateSupplement.handler
+    events:
+      - http:
+          path: supplements/update/{id}
+          method: put
+          cors: true
+
+  deleteSupplement:
+    handler: lambdas/supplements/deleteSupplement.handler
+    events:
+      - http:
+          path: supplements/delete/{id}
+          method: delete
+          cors: true
+
+  scheduleIntake:
+    handler: lambdas/supplements/scheduleIntake.handler
+    events:
+      - http:
+          path: supplements/schedule
+          method: post
+          cors: true
+
+  getScheduledIntakes:
+    handler: lambdas/supplements/getScheduledIntakes.handler
+    events:
+      - http:
+          path: supplements/schedule
+          method: get
+          cors: true
+
+  deleteScheduledIntake:
+    handler: lambdas/supplements/deleteScheduledIntake.handler
+    events:
+      - http:
+          path: supplements/schedule/{id}
+          method: delete
+          cors: true
+
+  updateScheduledIntake:
+    handler: lambdas/supplements/updateScheduledIntake.handler
+    events:
+      - http:
+          path: supplements/schedule/{id}
+          method: put
           cors: true
 
 resources:

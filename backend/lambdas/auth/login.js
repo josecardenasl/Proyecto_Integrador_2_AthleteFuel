@@ -72,7 +72,8 @@ exports.handler = async (event) => {
     const token = jwt.sign(
       {
         id: user.id,
-        email: user.email
+        email: user.email,
+        name: user.name
       },
       SECRET,
       { expiresIn: "1h" }
