@@ -6,6 +6,7 @@ provider:
   region: us-east-1
   environment:
     TABLE_NAME: AthleteFuel
+    RESEND_API_KEY: re_PrNZVTbk_AC44k6eQ1yeJDBQAEQyK8Ezy
 
 plugins:
   - serverless-offline
@@ -42,6 +43,22 @@ functions:
       - http:
           path: auth/profile
           method: put
+          cors: true
+
+  forgotPassword:
+    handler: lambdas/auth/forgotPassword.handler
+    events:
+      - http:
+          path: auth/forgot-password
+          method: post
+          cors: true
+
+  resetPassword:
+    handler: lambdas/auth/resetPassword.handler
+    events:
+      - http:
+          path: auth/reset-password
+          method: post
           cors: true
 
   createWorkout:

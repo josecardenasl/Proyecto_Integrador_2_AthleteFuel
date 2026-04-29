@@ -5,6 +5,7 @@ import WorkoutForm from "../components/WorkoutForm";
 import SupplementForm from "../components/SupplementForm";
 import ProfileForm from "../components/ProfileForm";
 import CalendarView from "../components/CalendarView";
+import Toast from "../components/Toast";
 import {
   getWorkouts, createWorkout, updateWorkout, deleteWorkout,
   getSessions, createSession, updateSession, deleteSession,
@@ -154,9 +155,9 @@ function WorkoutCard({ workout, onEdit, onDelete, onSchedule }) {
         <span className={`text-xs font-medium px-2.5 py-1 rounded-full ml-2 shrink-0 ${color}`}>{workout.type}</span>
       </div>
       <div className="flex gap-1.5 pt-1 border-t border-gray-50">
-        <button onClick={() => onSchedule(workout)} className="flex-1 text-xs bg-green-50 hover:bg-green-100 text-green-700 py-1.5 rounded-lg transition font-medium">📅 Programar</button>
-        <button onClick={() => onEdit(workout)} className="flex-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 rounded-lg transition">✏️ Editar</button>
-        <button onClick={() => onDelete(workout.id)} className="flex-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 py-1.5 rounded-lg transition">🗑️ Eliminar</button>
+        <button onClick={() => onSchedule(workout)} className="flex-1 text-xs bg-green-50 hover:bg-green-100 text-green-700 py-1.5 rounded-lg transition font-medium">Programar</button>
+        <button onClick={() => onEdit(workout)} className="flex-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 rounded-lg transition">Editar</button>
+        <button onClick={() => onDelete(workout.id)} className="flex-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 py-1.5 rounded-lg transition">Eliminar</button>
       </div>
     </div>
   );
@@ -184,9 +185,9 @@ function SupplementCard({ supplement, onEdit, onDelete, onSchedule }) {
         <span className={`text-xs font-medium px-2.5 py-1 rounded-full ml-2 shrink-0 ${color}`}>{supplement.timing}</span>
       </div>
       <div className="flex gap-1.5 pt-1 border-t border-gray-50">
-        <button onClick={() => onSchedule(supplement)} className="flex-1 text-xs bg-green-50 hover:bg-green-100 text-green-700 py-1.5 rounded-lg transition font-medium">📅 Programar</button>
-        <button onClick={() => onEdit(supplement)} className="flex-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 rounded-lg transition">✏️ Editar</button>
-        <button onClick={() => onDelete(supplement.id)} className="flex-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 py-1.5 rounded-lg transition">🗑️ Eliminar</button>
+        <button onClick={() => onSchedule(supplement)} className="flex-1 text-xs bg-green-50 hover:bg-green-100 text-green-700 py-1.5 rounded-lg transition font-medium">Programar</button>
+        <button onClick={() => onEdit(supplement)} className="flex-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 rounded-lg transition">Editar</button>
+        <button onClick={() => onDelete(supplement.id)} className="flex-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 py-1.5 rounded-lg transition">Eliminar</button>
       </div>
     </div>
   );
@@ -202,6 +203,7 @@ function Dashboard() {
   const [sessions, setSessions] = useState([]);
   const [intakeSchedules, setIntakeSchedules] = useState([]);
   const [activeTab, setActiveTab] = useState("workouts");
+  const [toast, setToast] = useState({ message: "", type: "success" });
 
   // Modals
   const [showWorkoutModal, setShowWorkoutModal] = useState(false);
@@ -221,7 +223,6 @@ function Dashboard() {
     const token = localStorage.getItem("token");
     if (!token) { navigate("/"); return; }
     const decoded = decodeToken(token);
-    // name viene en el token desde Sprint 2
     if (decoded?.name) setUserName(decoded.name);
     else if (decoded?.email) setUserName(decoded.email);
 
@@ -343,8 +344,13 @@ function Dashboard() {
 
   // ── Profile ───────────────────────────────────────────────────────────────
   async function handleUpdateProfile(data) {
-    try { await updateProfile(data); setUserProfile(data); }
-    catch { /* silent */ }
+    try {
+      await updateProfile(data);
+      setUserProfile(data);
+      setToast({ message: "Perfil actualizado correctamente", type: "success" });
+    } catch {
+      setToast({ message: "Error al actualizar el perfil", type: "error" });
+    }
     setShowProfileModal(false);
   }
 
@@ -356,6 +362,18 @@ function Dashboard() {
       <Navbar userName={userName} />
 
       <main className="max-w-5xl mx-auto px-4 py-8">
+
+        {/* Toast */}
+        {toast.message && (
+          <div className="mb-6">
+            <Toast
+              message={toast.message}
+              type={toast.type}
+              onClose={() => setToast({ message: "", type: "success" })}
+            />
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-6 flex items-start justify-between">
           <div>
@@ -363,7 +381,7 @@ function Dashboard() {
             <p className="text-gray-500 mt-1">Gestiona tus entrenamientos y suplementos</p>
           </div>
           <button onClick={() => setShowProfileModal(true)} className="bg-gray-800 hover:bg-gray-900 text-white text-sm px-4 py-2 rounded-lg transition font-medium">
-            👤 Mi perfil
+            Mi perfil
           </button>
         </div>
 
@@ -400,9 +418,9 @@ function Dashboard() {
         {/* Tabs */}
         <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
           {[
-            { key: "workouts", label: "⚡ Entrenamientos" },
-            { key: "supplements", label: "💊 Suplementos" },
-            { key: "calendar", label: `📅 Calendario${totalEvents > 0 ? ` (${totalEvents})` : ""}` },
+            { key: "workouts", label: "Entrenamientos" },
+            { key: "supplements", label: "Suplementos" },
+            { key: "calendar", label: `Calendario${totalEvents > 0 ? ` (${totalEvents})` : ""}` },
           ].map(({ key, label }) => (
             <button
               key={key}
@@ -416,7 +434,7 @@ function Dashboard() {
           ))}
         </div>
 
-        {/* ── Workouts Tab ── */}
+        {/* Workouts Tab */}
         {activeTab === "workouts" && (
           <section>
             <div className="flex items-center justify-between mb-4">
@@ -429,7 +447,6 @@ function Dashboard() {
               <p className="text-gray-400 text-sm">Cargando...</p>
             ) : workouts.length === 0 ? (
               <div className="bg-white border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center">
-                <p className="text-4xl mb-2">⚡</p>
                 <p className="text-gray-500 font-medium">No hay entrenamientos aún</p>
                 <p className="text-gray-400 text-sm mt-1">Agrega tu primer plan de entrenamiento</p>
               </div>
@@ -447,7 +464,7 @@ function Dashboard() {
           </section>
         )}
 
-        {/* ── Supplements Tab ── */}
+        {/* Supplements Tab */}
         {activeTab === "supplements" && (
           <section>
             <div className="flex items-center justify-between mb-4">
@@ -460,7 +477,6 @@ function Dashboard() {
               <p className="text-gray-400 text-sm">Cargando...</p>
             ) : supplements.length === 0 ? (
               <div className="bg-white border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center">
-                <p className="text-4xl mb-2">💊</p>
                 <p className="text-gray-500 font-medium">No hay suplementos aún</p>
                 <p className="text-gray-400 text-sm mt-1">Agrega tu primer suplemento</p>
               </div>
@@ -478,7 +494,7 @@ function Dashboard() {
           </section>
         )}
 
-        {/* ── Calendar Tab ── */}
+        {/* Calendar Tab */}
         {activeTab === "calendar" && (
           <section>
             <div className="flex items-center justify-between mb-4">
@@ -509,7 +525,7 @@ function Dashboard() {
         )}
       </main>
 
-      {/* ── Modals ── */}
+      {/* Modals */}
       {showWorkoutModal && (
         <Modal title="Nuevo entrenamiento" onClose={() => setShowWorkoutModal(false)}>
           <WorkoutForm onSubmit={handleAddWorkout} onCancel={() => setShowWorkoutModal(false)} />
