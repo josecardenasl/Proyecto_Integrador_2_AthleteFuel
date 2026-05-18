@@ -48,6 +48,13 @@ export async function resetPassword(data) {
   return response.json();
 }
 
+export async function getProfile() {
+  const response = await fetch(`${API_URL}/auth/profile`, {
+    headers: getAuthHeaders(),
+  });
+  return response.json();
+}
+
 export async function updateProfile(data) {
   const response = await fetch(`${API_URL}/auth/profile`, {
     method: "PUT",
@@ -55,6 +62,39 @@ export async function updateProfile(data) {
     body: JSON.stringify(data),
   });
   return response.json();
+}
+
+// Admin
+export async function getAdminUsers() {
+  const response = await fetch(`${API_URL}/admin/users`, {
+    headers: getAuthHeaders(),
+  });
+  return response.json();
+}
+
+export async function deleteAdminUser(id) {
+  const response = await fetch(`${API_URL}/admin/users/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  return response.json();
+}
+
+export async function getActivityLogs() {
+  const response = await fetch(`${API_URL}/admin/logs`, {
+    headers: getAuthHeaders(),
+  });
+  return response.json();
+}
+
+export async function logActivity(action, details = "") {
+  try {
+    await fetch(`${API_URL}/admin/log`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ action, details }),
+    });
+  } catch { /* never block main action */ }
 }
 
 export async function getWorkouts() {
@@ -188,6 +228,50 @@ export async function deleteScheduledIntake(id) {
   const response = await fetch(`${API_URL}/supplements/schedule/${id}`, {
     method: "DELETE",
     headers: getAuthHeaders(),
+  });
+  return response.json();
+}
+
+// Coach (admin assigns to users)
+export async function getAdminUserData(userId) {
+  const response = await fetch(`${API_URL}/admin/users/${userId}/data`, {
+    headers: getAuthHeaders(),
+  });
+  return response.json();
+}
+
+export async function adminAssignWorkout(userId, data) {
+  const response = await fetch(`${API_URL}/admin/users/${userId}/workouts`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return response.json();
+}
+
+export async function adminAssignSupplement(userId, data) {
+  const response = await fetch(`${API_URL}/admin/users/${userId}/supplements`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return response.json();
+}
+
+export async function adminAssignSession(userId, data) {
+  const response = await fetch(`${API_URL}/admin/users/${userId}/sessions`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  return response.json();
+}
+
+export async function adminAssignIntake(userId, data) {
+  const response = await fetch(`${API_URL}/admin/users/${userId}/intakes`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
   });
   return response.json();
 }

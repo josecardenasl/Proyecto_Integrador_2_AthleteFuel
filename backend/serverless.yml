@@ -189,6 +189,78 @@ functions:
           method: put
           cors: true
 
+  adminGetUsers:
+    handler: lambdas/admin/getUsers.handler
+    events:
+      - http:
+          path: admin/users
+          method: get
+          cors: true
+
+  adminDeleteUser:
+    handler: lambdas/admin/deleteUser.handler
+    events:
+      - http:
+          path: admin/users/{id}
+          method: delete
+          cors: true
+
+  adminGetLogs:
+    handler: lambdas/admin/getActivityLogs.handler
+    events:
+      - http:
+          path: admin/logs
+          method: get
+          cors: true
+
+  adminLogActivity:
+    handler: lambdas/admin/logActivity.handler
+    events:
+      - http:
+          path: admin/log
+          method: post
+          cors: true
+
+  adminGetUserData:
+    handler: lambdas/admin/getUserData.handler
+    events:
+      - http:
+          path: admin/users/{id}/data
+          method: get
+          cors: true
+
+  adminAssignWorkout:
+    handler: lambdas/admin/assignWorkout.handler
+    events:
+      - http:
+          path: admin/users/{id}/workouts
+          method: post
+          cors: true
+
+  adminAssignSupplement:
+    handler: lambdas/admin/assignSupplement.handler
+    events:
+      - http:
+          path: admin/users/{id}/supplements
+          method: post
+          cors: true
+
+  adminAssignSession:
+    handler: lambdas/admin/assignSession.handler
+    events:
+      - http:
+          path: admin/users/{id}/sessions
+          method: post
+          cors: true
+
+  adminAssignIntake:
+    handler: lambdas/admin/assignIntake.handler
+    events:
+      - http:
+          path: admin/users/{id}/intakes
+          method: post
+          cors: true
+
 resources:
   Resources:
     AthleteFuelTable:

@@ -17,22 +17,20 @@ exports.handler = async (event) => {
     if (!authHeader) return { statusCode: 401, body: JSON.stringify({ message: "Token required" }) };
 
     const decoded = jwt.verify(authHeader.split(" ")[1], SECRET);
+    if (decoded.role !== "admin") return { statusCode: 403, body: JSON.stringify({ message: "Admin access required" }) };
 
     const result = await dynamoDb.send(new ScanCommand({
       TableName: "AthleteFuel",
-      FilterExpression: "id = :id",
-      ExpressionAttributeValues: { ":id": decoded.id }
+      FilterExpression: "begins_with(id, :prefix)",
+      ExpressionAttributeValues: { ":prefix": "log_" }
     }));
 
-    if (!result.Items || result.Items.length === 0) {
-      return { statusCode: 404, body: JSON.stringify({ message: "User not found" }) };
-    }
+    const logs = (result.Items || []).sort((a, b) =>
+      new Date(b.timestamp) - new Date(a.timestamp)
+    );
 
-    const user = result.Items[0];
-    const { password, ...safeUser } = user;
-
-    return { statusCode: 200, body: JSON.stringify({ message: "Profile retrieved", user: safeUser }) };
+    return { statusCode: 200, body: JSON.stringify(logs) };
   } catch (error) {
-    return { statusCode: 401, body: JSON.stringify({ message: "Invalid token" }) };
+    return { statusCode: 500, body: JSON.stringify({ message: "Error fetching logs", error: error.message }) };
   }
 };

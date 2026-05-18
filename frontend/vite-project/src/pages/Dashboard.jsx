@@ -11,8 +11,40 @@ import {
   getSessions, createSession, updateSession, deleteSession,
   getSupplements, createSupplement, updateSupplement, deleteSupplement,
   getScheduledIntakes, scheduleIntake, updateScheduledIntake, deleteScheduledIntake,
-  updateProfile,
+  updateProfile, getProfile, logActivity,
 } from "../services/api";
+
+// ─── Reminder helpers ─────────────────────────────────────────────────────────
+function computeReminders(sessions, intakeSchedules, minutesBefore) {
+  const now = new Date();
+  const todayStr = now.toISOString().split("T")[0];
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const reminders = [];
+
+  (sessions || []).forEach(s => {
+    if (s.date === todayStr && s.time) {
+      const [h, m] = s.time.split(":").map(Number);
+      const diff = (h * 60 + m) - nowMin;
+      if (diff > 0 && diff <= minutesBefore) {
+        reminders.push({ id: s.id, type: "session", name: s.workoutName, time: s.time, minutesLeft: diff });
+      }
+    }
+  });
+
+  (intakeSchedules || []).forEach(i => {
+    if (i.date === todayStr) {
+      (i.intakeTimes || []).forEach(t => {
+        const [h, m] = t.split(":").map(Number);
+        const diff = (h * 60 + m) - nowMin;
+        if (diff > 0 && diff <= minutesBefore) {
+          reminders.push({ id: `${i.id}_${t}`, type: "intake", name: i.supplementName, time: t, minutesLeft: diff });
+        }
+      });
+    }
+  });
+
+  return reminders;
+}
 
 function decodeToken(token) {
   try {
@@ -216,21 +248,76 @@ function Dashboard() {
   const [preselectedWorkout, setPreselectedWorkout] = useState(null);
   const [preselectedSupplement, setPreselectedSupplement] = useState(null);
 
+  // ── Notifications / reminders ─────────────────────────────────────────────
+  const [userRole, setUserRole] = useState("user");
+  const [notifEnabled, setNotifEnabled] = useState(true);
+  const [reminderMinutes, setReminderMinutes] = useState(30);
+  const [reminders, setReminders] = useState([]);
+  const [dismissedIds, setDismissedIds] = useState(() => {
+    try { return new Set(JSON.parse(sessionStorage.getItem("dismissedReminders") || "[]")); }
+    catch { return new Set(); }
+  });
+
   const [loadingWorkouts, setLoadingWorkouts] = useState(true);
   const [loadingSupplements, setLoadingSupplements] = useState(true);
 
+  // ── Boot ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) { navigate("/"); return; }
     const decoded = decodeToken(token);
     if (decoded?.name) setUserName(decoded.name);
     else if (decoded?.email) setUserName(decoded.email);
+    if (decoded?.role) setUserRole(decoded.role);
+
+    // Fetch full profile to get notification preferences
+    getProfile().then(profile => {
+      if (profile && !profile.error) {
+        setUserProfile(profile);
+        if (profile.notificationsEnabled !== undefined) setNotifEnabled(profile.notificationsEnabled);
+        if (profile.reminderMinutesBefore)              setReminderMinutes(profile.reminderMinutesBefore);
+      }
+    }).catch(() => {});
 
     fetchWorkouts();
     fetchSupplements();
     fetchSessions();
     fetchIntakeSchedules();
   }, []);
+
+  // ── Reminder polling (every 60 s) ─────────────────────────────────────────
+  useEffect(() => {
+    if (!notifEnabled) { setReminders([]); return; }
+
+    function refresh() {
+      const all = computeReminders(sessions, intakeSchedules, reminderMinutes);
+      setReminders(all.filter(r => !dismissedIds.has(r.id)));
+    }
+
+    refresh();
+    const timer = setInterval(refresh, 60_000);
+    return () => clearInterval(timer);
+  }, [sessions, intakeSchedules, notifEnabled, reminderMinutes, dismissedIds]);
+
+  // ── Dismiss handlers ──────────────────────────────────────────────────────
+  function handleDismissReminder(id) {
+    setDismissedIds(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      sessionStorage.setItem("dismissedReminders", JSON.stringify([...next]));
+      return next;
+    });
+    setReminders(prev => prev.filter(r => r.id !== id));
+  }
+
+  function handleDismissAllReminders() {
+    setDismissedIds(prev => {
+      const next = new Set([...prev, ...reminders.map(r => r.id)]);
+      sessionStorage.setItem("dismissedReminders", JSON.stringify([...next]));
+      return next;
+    });
+    setReminders([]);
+  }
 
   async function fetchWorkouts() {
     setLoadingWorkouts(true);
@@ -256,6 +343,7 @@ function Dashboard() {
     try {
       const result = await createWorkout(data);
       setWorkouts(prev => [result.workout ?? { ...data, id: "workout_" + Date.now() }, ...prev]);
+      logActivity("CREATE_WORKOUT", data.name);
     } catch { setWorkouts(prev => [{ ...data, id: "workout_" + Date.now() }, ...prev]); }
     setShowWorkoutModal(false);
   }
@@ -268,8 +356,11 @@ function Dashboard() {
   }
   async function handleDeleteWorkout(id) {
     if (!window.confirm("¿Eliminar este entrenamiento?")) return;
-    try { await deleteWorkout(id); setWorkouts(prev => prev.filter(w => w.id !== id)); }
-    catch { /* silent */ }
+    try {
+      await deleteWorkout(id);
+      setWorkouts(prev => prev.filter(w => w.id !== id));
+      logActivity("DELETE_WORKOUT", id);
+    } catch { /* silent */ }
   }
 
   // ── Sessions ──────────────────────────────────────────────────────────────
@@ -278,6 +369,7 @@ function Dashboard() {
       const result = await createSession(data);
       const saved = result.session ?? { ...data, id: "session_" + Date.now() };
       setSessions(prev => [...prev, saved].sort((a, b) => a.date.localeCompare(b.date)));
+      logActivity("SCHEDULE_SESSION", `${data.workoutName} — ${data.date} ${data.time}`);
     } catch { /* silent */ }
     setShowScheduleSessionModal(false);
     setPreselectedWorkout(null);
@@ -303,6 +395,7 @@ function Dashboard() {
     try {
       const result = await createSupplement(data);
       setSupplements(prev => [result.supplement ?? { ...data, id: "supplement_" + Date.now() }, ...prev]);
+      logActivity("CREATE_SUPPLEMENT", data.name);
     } catch { setSupplements(prev => [{ ...data, id: "supplement_" + Date.now() }, ...prev]); }
     setShowSupplementModal(false);
   }
@@ -315,8 +408,11 @@ function Dashboard() {
   }
   async function handleDeleteSupplement(id) {
     if (!window.confirm("¿Eliminar este suplemento?")) return;
-    try { await deleteSupplement(id); setSupplements(prev => prev.filter(s => s.id !== id)); }
-    catch { /* silent */ }
+    try {
+      await deleteSupplement(id);
+      setSupplements(prev => prev.filter(s => s.id !== id));
+      logActivity("DELETE_SUPPLEMENT", id);
+    } catch { /* silent */ }
   }
 
   // ── Intake schedules ──────────────────────────────────────────────────────
@@ -325,6 +421,7 @@ function Dashboard() {
       const result = await scheduleIntake(data);
       const saved = result.schedule ?? { ...data, id: "supp_schedule_" + Date.now() };
       setIntakeSchedules(prev => [saved, ...prev]);
+      logActivity("SCHEDULE_INTAKE", `${data.supplementName} — ${data.date}`);
     } catch { /* silent */ }
     setShowScheduleIntakeModal(false);
     setPreselectedSupplement(null);
@@ -347,6 +444,9 @@ function Dashboard() {
     try {
       await updateProfile(data);
       setUserProfile(data);
+      // Keep reminder engine in sync with new preferences
+      if (data.notificationsEnabled !== undefined) setNotifEnabled(data.notificationsEnabled);
+      if (data.reminderMinutesBefore)              setReminderMinutes(data.reminderMinutesBefore);
       setToast({ message: "Perfil actualizado correctamente", type: "success" });
     } catch {
       setToast({ message: "Error al actualizar el perfil", type: "error" });
@@ -359,7 +459,13 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar userName={userName} />
+      <Navbar
+        userName={userName}
+        userRole={userRole}
+        reminders={reminders}
+        onDismissReminder={handleDismissReminder}
+        onDismissAllReminders={handleDismissAllReminders}
+      />
 
       <main className="max-w-5xl mx-auto px-4 py-8">
 
