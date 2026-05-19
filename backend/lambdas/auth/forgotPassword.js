@@ -1,14 +1,6 @@
-const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, ScanCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
+const { ScanCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
 const { Resend } = require("resend");
-
-const client = new DynamoDBClient({
-  region: "us-east-1",
-  endpoint: "http://localhost:8000",
-  credentials: { accessKeyId: "local", secretAccessKey: "local" },
-});
-
-const dynamoDb = DynamoDBDocumentClient.from(client);
+const dynamoDb = require("../../services/dynamoClient");
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 function generateOTP() {

@@ -1,14 +1,6 @@
-const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, UpdateCommand, ScanCommand } = require("@aws-sdk/lib-dynamodb");
+const { UpdateCommand, ScanCommand } = require("@aws-sdk/lib-dynamodb");
 const jwt = require("jsonwebtoken");
-
-const client = new DynamoDBClient({
-  region: "us-east-1",
-  endpoint: "http://localhost:8000",
-  credentials: { accessKeyId: "local", secretAccessKey: "local" }
-});
-
-const dynamoDb = DynamoDBDocumentClient.from(client);
+const dynamoDb = require("../../services/dynamoClient");
 const SECRET = "athletefuel-secret";
 
 exports.handler = async (event) => {

@@ -1,13 +1,5 @@
-const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, PutCommand } = require("@aws-sdk/lib-dynamodb");
-
-const client = new DynamoDBClient({
-  region: "us-east-1",
-  endpoint: "http://localhost:8000",
-  credentials: { accessKeyId: "local", secretAccessKey: "local" }
-});
-
-const dynamoDb = DynamoDBDocumentClient.from(client);
+const { PutCommand } = require("@aws-sdk/lib-dynamodb");
+const dynamoDb = require("../services/dynamoClient");
 
 async function logActivity(userId, userName, action, details = "") {
   try {

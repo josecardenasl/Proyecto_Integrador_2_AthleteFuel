@@ -1,14 +1,6 @@
-const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, ScanCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
+const { ScanCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
 const bcrypt = require("bcryptjs");
-
-const client = new DynamoDBClient({
-  region: "us-east-1",
-  endpoint: "http://localhost:8000",
-  credentials: { accessKeyId: "local", secretAccessKey: "local" },
-});
-
-const dynamoDb = DynamoDBDocumentClient.from(client);
+const dynamoDb = require("../../services/dynamoClient");
 
 exports.handler = async (event) => {
   try {
